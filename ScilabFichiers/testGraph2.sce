@@ -29,6 +29,10 @@ function res = donnees(n,K)
     res = [res1 res2];
 endfunction
 
+function y = afficheCourbe1(a,n)
+     plot(a(:,1),a(:,2));
+     zoom_rect([400 0 2600 300]);
+endfunction
 function y = fMC(x,X)
     l = size(X,1)
     y = zeros(1,size(x,2))
@@ -50,7 +54,9 @@ y2 = matPuissMdreCre(:,2);
 degre = 2;
 X = moindresCarres(x,y,degre);
 X2 = moindresCarres(x2,y2,degre);
-p = 100
+X = [0.0000352;-0.0985985;257.98788];
+X2 = [-0.0001502;0.5648365;-263.93706];
+p = 600;
 //afficheCourbe1(matPuissMdreCre,nbPoints)
 ech = linspace(0,2500,p);
 couple = ((30/%pi)*fMC(ech,X2))./ech;
@@ -62,9 +68,22 @@ function res = n(x)
     res = x ./max(x);
 endfunction
 function res = ff(x,y,A)
-    res = (A(1).*(x.^2))+(A(2).*(y))+A(3);
+    res = (A(1).*(x.^2 .*y))+(A(2).*(x.^3))+(A(3).*(x.^2))+(A(4).*(y.^2))+(A(5).*(x))+(A(6).*(y))+(A(7).*(y.*x))+A(8)+5;
+endfunction
+function res = calculGrilleSurface(x,y,A)
+    res = A(1)*(x.^2)+A(2)*y + A(3);
 endfunction
 
+function res = matriceVal3D2(x,mcCouple,mcConso,mMinConso)
+    res = [];
+    p=0;
+    xx =  x;
+    t = fMC(x,mcCouple);
+    c = fMC(x,mcConso);
+    c=c';
+    res = [(xx.^2)' (t)' ones(size(x,2),1)];
+    res = inv(res'*res)*res'*c;
+endfunction
 function res = matritialise(a,i)
     res = []
     for i = (1:1:i)
@@ -72,16 +91,27 @@ function res = matritialise(a,i)
     end
 endfunction
 function res = gg(x,y,A,alpha,a,mcP)
-    res = ((alpha+1)*ff(x,y,A)) -matritialise(((2*alpha.*y)./((mcP(1)*(a.^2))+(mcP(2)*a)+mcP(3))),size(ff(x,y,A),1)).*ff(x,y,A) + matritialise(((2*alpha.*y.^2)./(((mcP(1)*(a.^2))+(mcP(2)*a)+mcP(3)).^2)),size(ff(x,y,A),1)).*ff(x,y,A);
+    p1 = ((alpha+1)*ff(x,y,A));
+    p2 = ((2*alpha.*y)./(matritialise((mcP(1)*(a.^2)+mcP(2)*a+mcP(3)),size(ff(x,y,A),2))).*ff(x,y,A));
+    p3 = ((2*alpha.*y.^2)./(matritialise(((mcP(1)*(a.^2)+mcP(2)*a+mcP(3)).^2),size(ff(x,y,A),2)))).*ff(x,y,A);
+    res = p1 - p2 + p3;
+endfunction
+function res = gg2(Z,a,M,alpha)
+    for i = linspace(1,size(Z,1),size(Z,1))
+        for j = linspace(1,size(Z,2),size(Z,2))
+            Z(i,j) = Z(i,j)*(1+alpha*(1-((M(1)*(a(i)^2)+M(2)*a(i)+M(3))/Z(i,j))));
+        end
+    end
+    res = Z;
 endfunction
 
 function res = matriceVal3D(x,mcP,mcC)
-    res = (x.^2)';
-    p = fMC(x,mcP);
+    res = (x.^5)';
+    p = ((mcP(1)*(x.^2))+(mcP(2)*x)+mcP(3));
     p = p';
-    c = fMC(x,mcC);
+    c = ((mcC(1)*(x.^2))+(mcC(2)*x)+mcC(3));
     c=c';
-    res = [res (p) ones(size(x,2),1)];
+    res = [(x.^2)'.*p (x.^3)' (x.^2)' (p.^2) x' p (p.*x') ones(size(x,2),1)];
     res = inv(res'*res)*res'*c;
 endfunction
 
@@ -91,7 +121,7 @@ function res = afficheConsoPC(x,y,Z,X)
         a = fMC(x(i),X);
             q = 0;
         for j = (1:2:p)
-            if((Z(i,j) >= a-1.5) & (Z(i,j) <= a+1.5) & q < 2) then
+            if((Z(i,j) >= a-0.2) & (Z(i,j) <= a+0.2) & q < 2) then
                 plot(x(i),y(j),'x');
                 res = res + 1;
                 q = q+1;
@@ -102,18 +132,19 @@ endfunction
 rpm = linspace(0,2500,p)
 c = linspace(1,1700,p);
 x = rpm;
-y = fMC(x,X2);
-a = linspace(800,2500,3);
+y = X2(1)*x.^2+X2(2)*x+X2(3);
+a = linspace(500,2500,3600);
 
 [A,B] = meshgrid(x,y);
-Z = ff(A,B,matriceVal3D(a,X2,X));
-f=gcf();f.color_map=hotcolormap(32);
-xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax²+by+c","regime moteur (tr/min)","puissance fourni (kW)")
-zoom_rect([0 0 2600 300]);
-colorbar(min(Z'),(max(Z')));
-grayplot(x,y,Z');
+Z = calculGrilleSurface(A,B,matriceVal3D2(a,X2,X));
+Z = Z';
+//Z = gg2(Z,rpm,X,1.2)
+f=gcf();f.color_map=hotcolormap(22);xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax²+by+c","regime moteur (tr/min)","puissance fourni (kW)")
+zoom_rect([500 0 2600 300]);
+colorbar(min(Z),(max(Z)));
+grayplot(x,y,Z);
 plot(rpm,puissance)
-r = afficheConsoPC(x,y,Z',X)
+r = afficheConsoPC(x,y,Z,X)
 
 
 //A = [[640000,7761.61,70480,1];[1960000,51121.21,316540,1];[4000000,65587.21,512200,1];[6250000,39441.96,496500,1]]

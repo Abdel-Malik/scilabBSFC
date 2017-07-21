@@ -1,0 +1,7 @@
+\noindent Une fois l'instalaltion lancé, il suffit de suivre les instructions, je recommande de concerver l'installation complète (voir capture ci-dessous).
+
+\includegraphics[scale=0.5]{;/} 
+
+\noindent Afin d'éviter tout altération possibles sur les fichiers que vous ouvririez je vous recommande d'opter pour la configuration suivante : \\
+
+\includegraphics[scale=0.5]{;/} 
