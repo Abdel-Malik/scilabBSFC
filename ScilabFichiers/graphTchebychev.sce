@@ -68,7 +68,7 @@ function res = n(x)
     res = x ./max(x);
 endfunction
 function res = ff(x,y,A)
-    res = (A(1)*(x.^2))+(A(2)*(x))+(A(3)*(y))+(A(4)*(y.*x))+A(5);
+    res = (A(1)*(x.^2))+(A(2)*(x.^-1))+(A(3)*(y))+(A(4)*(y.*x))+A(5);
 endfunction
 
 
@@ -86,7 +86,7 @@ function res = matriceVal3D(x,mcP,mcC)
     p = p';
     c = fMC(x,mcC);
     c=c';
-    res = [(x.^2)' x' p (p.*x') ones(size(x,2),1)];
+    res = [(x.^2)' (x.^-1)' p (p.*x') ones(size(x,2),1)];
     res = inv(res'*res)*res'*c;
 endfunction
 

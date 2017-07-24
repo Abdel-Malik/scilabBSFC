@@ -81,7 +81,7 @@ function res = calculGrilleSurface(x,y,A)
         res = res + A(2*i+1)*(x.^(4-i)) + A(2*(i+1))*(y.^(4-i));
     end
     res = res + A(9)*((x).*(y));
-    res = res + A(10);
+    res = res + A(10) + A(11)*((x+1).^-1);
 endfunction
 
 function res = gg2(Z,a,M,alpha)
@@ -115,7 +115,7 @@ function res = matriceVal3D(t,a,mcP,MC)
     end
     a = (x').*(p);
     res = [res a];
-    res = [res ones(size(x,2),1)];
+    res = [res ones(size(x,2),1) ];
     res = inv(res'*res)*res'*c;
 endfunction
 

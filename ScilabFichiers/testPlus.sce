@@ -28,9 +28,15 @@ degreInterpolationCouple = 3;
 degreInterpolationConso = 2;
 //Points échantillonnés (pas constant) pour moindres carrés
 ptsPuiss = [172000,194200,212100,229000,246000,261900,263800,264600,265000,264600,260200];
-ptsCouple = [1696,1700,1696,1690,1680,1659,1578,1493,1415,1334,1253];
-ptsConso = [193,190,189,188,189,191,193,195,198,201];
-
+p1 = [1696,1700,1696,1690,1680,1659,1578,1493,1415,1334,1253];
+p2 = [193,190,189,188,189,191,193,195,198,201];
+p2 = [150,208,203,195,155,197,200,206,210,202];
+p3 = [210,213,209,201,206,207,210,217,225,239];
+p4 = [240,234,229,215,221,230,237,240,250,260];
+p5 = [260,256,249,240,242,217,250,259,270,285];
+p6 = [280,278,269,266,269,275,282,290,300,310];
+p7 = [300,297,289,280,283,290,299,310,320,330];
+p8 = [340,336,320,315,317,320,332,345,350,380];
 function Xn = RacineTchebychev(n,a,b)
     i = linspace(1,n,n)
     Xn=cos(((2.*i-1).*%pi)./(2. *n))
@@ -101,39 +107,17 @@ rpmP = linspace(intervalleBasP,intervalleHautP,size(ptsPuiss,2));
 rpmCouple = linspace(intervalleBasC,intervalleHautC,size(ptsCouple,2));
 rpmConso = linspace(intervalleBasConso,intervalleHautConso,size(ptsConso,2));
 polyCouple = moindresCarres(rpmCouple',ptsCouple',degreInterpolationCouple);
-polyConso = moindresCarres(rpmConso',ptsConso',degreInterpolationConso);
-
-
-//vecteur (abscisses) pour le calcul et l'affichage des courbes
-ech=linspace(miniR,maxiR,1000);
-
-y3 = fMC(ech,polyCouple);
-plot(ech,y3,'c');
-plot(rpmCouple,ptsCouple,'b--');
-xgrid(1);
-zoom_rect([miniR miniCouple maxiR 1.1*maxiCouple]);
-xtitle("Courbe de Couple pleine charge","regime moteur (tr/min)","couple moteur (Nm)");
-xclick();
-clf();
-
-plot(ech,(%pi/30)*(y3.*ech),'g');
-plot(rpmP,ptsPuiss,'b--');
-xtitle("Courbe de puissance pleine charge","regime moteur (tr/min)","puissance (W)");
-zoom_rect([miniR miniP maxiR 1.1*maxiP]);
-xgrid(1);
-xclick();
-clf();
-
-plot(ech,fMC(ech,polyConso),'r');
-plot(rpmConso,ptsConso,'b--');
-xgrid(1);
-xtitle("Courbe de consommation pleine charge","regime moteur (tr/min)","Consommation (g/kWh)");
-zoom_rect([miniR miniConso maxiR 1.1*maxiConso]);
-xclick();
-clf();
 
 //--Etape 1 Calcul de coefficients par la méthode des moindres carrés--//
-
+matConso = [p1;p2;p3;p4;p5];
+RPM = 0;
+for i = linspace(0,nbPtsConso-1,nbPtsConso)
+    RPM(i+1) = 800+((1400/(nbPtsConso+3))*(i+2));
+end
+X = [];
+for i = linspace(1,5,5)
+    X = [X;moindresCarres(RPM,(matConso(i,:))',degre)'];
+end
 ptsGraph = 300;
 rpm = linspace(200,maxiR,ptsGraph);
 couple = fMC(rpm,polyCouple);
@@ -220,7 +204,7 @@ Z = Z';
 
 zoom_rect([miniR miniCouple maxiR 1.1*maxiCouple]);
 f=gcf();f.color_map=hotcolormap(36);
-xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax^3 + bx^(-1) + cxy + dy + e","regime moteur (tr/min)","couple fourni (Nm)")
+xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax^3 + bx^(-1) + cxy + d","regime moteur (tr/min)","couple fourni (Nm)")
 colorbar(min(Z),(max(Z)));
 grayplot(rpm,coupleVal,Z);
 plot(rpm,couple);
