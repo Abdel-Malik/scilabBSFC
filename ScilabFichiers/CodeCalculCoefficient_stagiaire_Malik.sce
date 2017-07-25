@@ -30,7 +30,15 @@ degreInterpolationConso = 2;
 ptsPuiss = [172000,194200,212100,229000,246000,261900,263800,264600,265000,264600,260200];
 ptsCouple = [1696,1700,1696,1690,1680,1659,1578,1493,1415,1334,1253];
 ptsConso = [193,190,189,188,189,191,193,195,198,201];
+//ptsConsoModifiee = [193,190,189,188,189,191,193,195,198,206];
 
+//exposant pour le calcul de consommation spécifique
+expRotation1 = 1.5;
+expRotation2 = -1;
+expCorrelation = 0.9;
+expCouple = 0.45;
+
+/*Fonctions maths*/
 function Xn = RacineTchebychev(n,a,b)
     i = linspace(1,n,n)
     Xn=cos(((2.*i-1).*%pi)./(2. *n))
@@ -96,26 +104,36 @@ function res = calculRcarre(x,y)
     Sy2 = sum((y-ym).^2)/(nb-1);
     res = (Sxy^2)/(Sx2*Sy2);    
 endfunction
+/*fin fonction*/
 
+//Vecteurs : plage de rotations moteurs en fonction d'un intervalle donné
 rpmP = linspace(intervalleBasP,intervalleHautP,size(ptsPuiss,2));
 rpmCouple = linspace(intervalleBasC,intervalleHautC,size(ptsCouple,2));
 rpmConso = linspace(intervalleBasConso,intervalleHautConso,size(ptsConso,2));
+rpmConsoM = linspace(intervalleBasConso,intervalleHautConso,size(ptsConsoModifiee,2));
+
+//--Calcul de coefficients par la méthode des moindres carrés--//
 polyCouple = moindresCarres(rpmCouple',ptsCouple',degreInterpolationCouple);
 polyConso = moindresCarres(rpmConso',ptsConso',degreInterpolationConso);
+polyConsoM = moindresCarres(rpmConsoM',ptsConsoModifiee',degreInterpolationConso);
 
 
 //vecteur (abscisses) pour le calcul et l'affichage des courbes
 ech=linspace(miniR,maxiR,1000);
 
+//Affichage Courbes de couple
 y3 = fMC(ech,polyCouple);
 plot(ech,y3,'c');
 plot(rpmCouple,ptsCouple,'b--');
 xgrid(1);
 zoom_rect([miniR miniCouple maxiR 1.1*maxiCouple]);
 xtitle("Courbe de Couple pleine charge","regime moteur (tr/min)","couple moteur (Nm)");
+//attends un clique souris pour continuer le code
 xclick();
+//remise à zéro de l'affichage
 clf();
 
+//Affichage Courbes de puissance
 plot(ech,(%pi/30)*(y3.*ech),'g');
 plot(rpmP,ptsPuiss,'b--');
 xtitle("Courbe de puissance pleine charge","regime moteur (tr/min)","puissance (W)");
@@ -124,6 +142,7 @@ xgrid(1);
 xclick();
 clf();
 
+//Affichage Courbes de consommation
 plot(ech,fMC(ech,polyConso),'r');
 plot(rpmConso,ptsConso,'b--');
 xgrid(1);
@@ -132,16 +151,10 @@ zoom_rect([miniR miniConso maxiR 1.1*maxiConso]);
 xclick();
 clf();
 
-//--Etape 1 Calcul de coefficients par la méthode des moindres carrés--//
-
-ptsGraph = 300;
-rpm = linspace(200,maxiR,ptsGraph);
-couple = fMC(rpm,polyCouple);
-puissance =(%pi/30)*(couple.*rpm);
-
+//--Partie graphique consommation spécifique--//
 
 function res = calculGrilleSurface(x,y,A)
-    res = A(1)*(x.^3)+A(2)*((x+1).^-1) + A(3)*(y.*x) + A(4)*(y.^1) + A(5);
+    res = A(1)*(x.^expRotation1)+A(2)*((x+1).^expRotation2) + A(3)*(y.*x).^expCorrelation + A(4)*(y.^expCouple) + A(5);
 endfunction
 
 function res = amplifierEcart(Z,a,M,alpha)
@@ -162,7 +175,7 @@ function res = matriceVal3D(x,mcCouple,mcConso,mMinConso)
     t = fMC(x,mcCouple);
     c = fMC(x,mcConso);
     c = c';
-    res = [(xx.^3)' ((xx+1)').^-1 (t.*xx)' (t.^1)' ones(size(x,2),1)];
+    res = [(xx.^expRotation1)' ((xx+1).^expRotation2)' ((t.*xx).^expCorrelation)' (t.^expCouple)' ones(size(x,2),1)];
     res = inv(res'*res)*res'*c;
 endfunction
 
@@ -205,7 +218,13 @@ function res = afficheConsoPC(x,y,Z,X)
     end
 endfunction
 
+//nombre de points par axe pour le graphique (influe sur le niveau de détail)
+ptsGraph = 150;
 
+//initialisation vecteurs
+rpm = linspace(400,maxiR,ptsGraph);
+couple = fMC(rpm,polyCouple);
+puissance =(%pi/30)*(couple.*rpm);
 a = linspace(miniR,maxiR,n);
 coupleVal = linspace(miniCouple,1.1*max(couple),ptsGraph);
 puissVal = linspace(miniP,1.1*max(puissance),ptsGraph);
@@ -216,15 +235,29 @@ Z = calculGrilleSurface(A,B,matriceVal3D(a,polyCouple,polyConso));
 Z = Z';
 //Z = amplifierEcart(Z,rpm,polyConso,1.10);
 
-//Affichage
+//--Affichage--//
 
+//positionnement de l'affichage
 zoom_rect([miniR miniCouple maxiR 1.1*maxiCouple]);
-f=gcf();f.color_map=hotcolormap(36);
-xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax^3 + bx^(-1) + cxy + dy + e","regime moteur (tr/min)","couple fourni (Nm)")
+
+//préparation de la coloration (choix d'un nombre de nuances)
+f=gcf();f.color_map=hotcolormap(32);
+
+//nomme le graphique ainsi que les axes
+xtitle("Graphique d interpolation d un BSFC diesel : f(x,y)=ax^"+string(expRotation1)+" + bx^("+string(expRotation2)+") + cxy^"+string(expCorrelation)+" + dy^"+string(expCouple)+" + e","regime moteur (tr/min)","couple fourni (Nm)")
+//initialise les extrémités de l'intervalle de la matrice utilisé pour la coloration
 colorbar(min(Z),(max(Z)));
+
+//coloration (affichage du 3e axe)
 grayplot(rpm,coupleVal,Z);
+
+//affichage courbes
 plot(rpm,couple);
+
+//affichage points de donnée
 plot(rpmCouple,ptsCouple,'roo');
+
+//affichage des croix bleus
 r = afficheConsoPC(rpm,coupleVal,Z,polyConso);
 
 //Ecriture coefficients dans la console
